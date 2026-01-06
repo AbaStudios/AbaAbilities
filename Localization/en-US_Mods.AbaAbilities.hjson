@@ -1,0 +1,28 @@
+Mods: {
+	AbaAbilities: {
+		NPCs: {
+			Runecrafter: {
+				Name: Runecrafter
+				Chat1: Want your sword to sing? Try slapping an Ability Rune on it — results may vary.
+			}
+		}
+	}
+}
+
+NPCs: {
+	Runecrafter: {
+		TownNPCMood: {
+			Princess_LovesNPC: I like {NPCName}.
+			LikeNPC_Princess: I like {NPCName}.
+			HateCrowded: I hate how crowded I am.
+			DislikeCrowded: I dislike how crowded I am.
+			LoveSpace: I love having so much space.
+			FarFromHome: I am too far from home.
+			NoHome: I hate not having a home.
+			Content: I am content.
+		}
+
+		DisplayName: Runecrafter
+		Census.SpawnCondition: Conditions unknown
+	}
+}

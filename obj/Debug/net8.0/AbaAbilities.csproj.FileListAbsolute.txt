@@ -1,0 +1,12 @@
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\AbaAbilities.csproj.AssemblyReference.cache
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\AbaAbilities.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\AbaAbilities.AssemblyInfoInputs.cache
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\AbaAbilities.AssemblyInfo.cs
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\AbaAbilities.csproj.CoreCompileInputs.cache
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\bin\Debug\net8.0\AbaAbilities.deps.json
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\bin\Debug\net8.0\AbaAbilities.dll
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\bin\Debug\net8.0\AbaAbilities.pdb
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\AbaAbilities.dll
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\refint\AbaAbilities.dll
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\AbaAbilities.pdb
+C:\Users\boden\Documents\My Games\Terraria\tModLoader\ModSources\AbaAbilities\obj\Debug\net8.0\ref\AbaAbilities.dll
