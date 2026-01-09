@@ -70,7 +70,6 @@ public class RunecrafterDialogueUI : UIState
         _background?.Reset();
         _dialogueText?.Reset();
         _buttonContainer?.Reset();
-        Recalculate();
     }
 
     public void RequestClose() {
@@ -81,6 +80,7 @@ public class RunecrafterDialogueUI : UIState
 
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
+        Recalculate(); // Ensure proper UIElement dimensions for mouse detection
         if (_closing) return;
 
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -248,9 +248,6 @@ public class RunecrafterDialogueUI : UIState
         private float _hoverProgress;
         private bool _wasHovering;
 
-        private const float HOVER_SPEED = 24f;  // Faster hover feedback
-        private const float OUTLINE_SPEED = 24f;
-
         private static readonly Color PanelBgColor = new(63, 82, 151);
         private static readonly Color PanelBorderColor = new(89, 116, 213);
 
@@ -288,26 +285,13 @@ public class RunecrafterDialogueUI : UIState
 
         public void SetEntryProgress(float p) => _entryProgress = p;
 
-        private bool _lastMouseLeft;
-
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
             if (_entryProgress <= 0f) return;
 
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
             
-            // Manual click detection using rectangle checks (like vanilla NPC buttons)
-            CalculatedStyle dims = GetDimensions();
-            Vector2 mousePos = new Vector2(Main.mouseX, Main.mouseY);
-            Vector2 boundsMin = new Vector2(dims.X, dims.Y);
-            Vector2 boundsMax = new Vector2(dims.X + dims.Width, dims.Y + dims.Height);
-            
-            bool hovering = mousePos.Between(boundsMin, boundsMax) && _entryProgress >= 1f && !PlayerInput.IgnoreMouseInterface;
-
-            // Robust click detection: Track mouse state locally to avoid interference from other systems consuming Main.mouseLeftRelease
-            bool mouseLeft = Main.mouseLeft;
-            bool justClicked = mouseLeft && !_lastMouseLeft;
-            _lastMouseLeft = mouseLeft;
+            bool hovering = IsMouseHovering && _entryProgress >= 1f && !PlayerInput.IgnoreMouseInterface;
 
             if (hovering && !_wasHovering) {
                 SoundEngine.PlaySound(SoundID.MenuTick);
@@ -317,14 +301,15 @@ public class RunecrafterDialogueUI : UIState
             }
             _wasHovering = hovering;
 
-            // Switch to immediate hover feedback
             _hoverProgress = hovering ? 1f : 0f;
 
             if (hovering)
                 Main.LocalPlayer.mouseInterface = true;
+        }
 
-            // Click detection - use local tracker
-            if (hovering && justClicked) {
+        public override void LeftClick(UIMouseEvent evt) {
+            base.LeftClick(evt);
+            if (_entryProgress >= 1f) {
                 SoundEngine.PlaySound(SoundID.MenuTick);
                 Main.mouseLeftRelease = false;
                 Main.LocalPlayer.releaseUseItem = false;

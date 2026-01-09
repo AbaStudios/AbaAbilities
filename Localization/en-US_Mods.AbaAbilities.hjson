@@ -26,3 +26,15 @@ NPCs: {
 		Census.SpawnCondition: Conditions unknown
 	}
 }
+
+Configs: {
+	ServerConfig: {
+		DisplayName: Server Config
+		Headers.Debug: Dev Mode Header
+
+		DevMode: {
+			Label: Dev Mode
+			Tooltip: ""
+		}
+	}
+}

@@ -10,9 +10,6 @@
 
 	<!-- References -->
 	<ItemGroup>
-		<ProjectReference Include="..\StandardRpgApi\StandardRpgApi.csproj">
-			<Private>false</Private>
-		</ProjectReference>
 	</ItemGroup>
 
 </Project>

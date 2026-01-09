@@ -1,30 +1,11 @@
 {
   "version": 3,
   "targets": {
-    "net8.0": {
-      "StandardRpgApi/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v8.0",
-        "compile": {
-          "bin/placeholder/StandardRpgApi.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/StandardRpgApi.dll": {}
-        }
-      }
-    }
+    "net8.0": {}
   },
-  "libraries": {
-    "StandardRpgApi/1.0.0": {
-      "type": "project",
-      "path": "../StandardRpgApi/StandardRpgApi.csproj",
-      "msbuildProject": "../StandardRpgApi/StandardRpgApi.csproj"
-    }
-  },
+  "libraries": {},
   "projectFileDependencyGroups": {
-    "net8.0": [
-      "StandardRpgApi >= 1.0.0"
-    ]
+    "net8.0": []
   },
   "packageFolders": {
     "C:\\Users\\boden\\.nuget\\packages\\": {}
@@ -32,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\AbaAbilities\\AbaAbilities.csproj",
+      "projectUniqueName": "C:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\AbaAbilities\\AbaAbilities.csproj",
       "projectName": "AbaAbilities",
-      "projectPath": "c:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\AbaAbilities\\AbaAbilities.csproj",
+      "projectPath": "C:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\AbaAbilities\\AbaAbilities.csproj",
       "packagesPath": "C:\\Users\\boden\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\AbaAbilities\\obj\\",
+      "outputPath": "C:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\AbaAbilities\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\boden\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -47,11 +28,7 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
-          "projectReferences": {
-            "c:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\StandardRpgApi\\StandardRpgApi.csproj": {
-              "projectPath": "c:\\Users\\boden\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\StandardRpgApi\\StandardRpgApi.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {
