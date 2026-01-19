@@ -8,6 +8,8 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using AbaAbilities.Common.Attachments;
 using AbaAbilities.Content.Abilities;
+using AbaAbilities.Content.Abilities.Siphon;
+using AbaAbilities.Content.Abilities.StarlitWhirlwind;
 using AbaAbilities.Core;
 using AbaAbilities.Net;
 
@@ -17,7 +19,13 @@ namespace AbaAbilities
     {
         public override void Load()
         {
-            AbilityApi.Register<ExampleAbility>("AbaAbilities:ExampleAbility");
+            AbilityApi.Register<ExampleAbility>();
+            AbilityApi.Register<MagicalDash>();
+            AbilityApi.Register<MeleeSiphon>();
+            AbilityApi.Register<RangedSiphon>();
+            AbilityApi.Register<MagicSiphon>();
+            AbilityApi.Register<CelestialCollapse>();
+            AbilityApi.Register<StarlitWhirlwind>();
         }
 
         public override void HandlePacket(BinaryReader reader, int whoAmI)

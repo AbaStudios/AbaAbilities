@@ -1,4 +1,4 @@
 displayName = Aba's Abilities
 author = Aba Studios
 version = 0.0.1
-dependency = StandardRpgApi
+modReferences = Luminance

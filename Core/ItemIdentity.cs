@@ -46,10 +46,9 @@ namespace AbaAbilities.Core
             var player = Main.LocalPlayer;
             bool isShiftHeld = Main.keyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift) || Main.keyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightShift);
 
-            const string separator = "\u00A0";
-            tooltips.Add(new TooltipLine(Mod, "AbilityBlankTop", separator));
-
             var playerStore = player.GetModPlayer<PlayerStore>();
+
+            var abilityLines = new List<TooltipLine>();
 
             foreach (var attachment in Attachments)
             {
@@ -66,10 +65,16 @@ namespace AbaAbilities.Core
                 foreach (var line in lines)
                 {
                     if (!string.IsNullOrEmpty(line))
-                        tooltips.Add(new TooltipLine(Mod, $"Ability_{attachment.Id}", line));
+                        abilityLines.Add(new TooltipLine(Mod, $"Ability_{attachment.Id}", line));
                 }
             }
 
+            if (abilityLines.Count == 0)
+                return;
+
+            const string separator = "\u00A0";
+            tooltips.Add(new TooltipLine(Mod, "AbilityBlankTop", separator));
+            tooltips.AddRange(abilityLines);
             tooltips.Add(new TooltipLine(Mod, "AbilityBlankBottom", separator));
         }
 

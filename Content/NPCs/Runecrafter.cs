@@ -40,6 +40,5 @@ public class Runecrafter : ModNPC
 
     public override void OnChatButtonClicked(bool firstButton, ref string shopName)
     {
-        // For now, just close the chat
     }
 }

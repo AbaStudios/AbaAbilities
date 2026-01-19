@@ -74,8 +74,7 @@ namespace AbaAbilities.Core
 
         private static HookMask ComputeHookMask(Type type)
         {
-            ulong mask = 0;
-            ulong noAutoActivateMask = 0;
+            var mask = new HookMask();
 
             var baseType = typeof(Ability);
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
@@ -92,13 +91,11 @@ namespace AbaAbilities.Core
                 if (!TryGetHookType(method.Name, out var hookType))
                     continue;
 
-                mask |= (ulong)hookType;
-
-                if (method.GetCustomAttribute<NoAutoActivateAttribute>() != null)
-                    noAutoActivateMask |= (ulong)hookType;
+                bool noAutoActivate = method.GetCustomAttribute<NoAutoActivateAttribute>() != null;
+                mask = mask.Set(hookType, noAutoActivate);
             }
 
-            return new HookMask(mask, noAutoActivateMask);
+            return mask;
         }
 
 

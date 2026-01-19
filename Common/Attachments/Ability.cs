@@ -9,6 +9,9 @@ using AbaAbilities.Core;
 
 namespace AbaAbilities.Common.Attachments
 {
+    /// <summary>
+    /// Base class for abilities that can be attached to players or items.
+    /// </summary>
     public abstract class Ability
     {
         public Player Player { get; internal set; }
@@ -16,26 +19,35 @@ namespace AbaAbilities.Common.Attachments
         internal HookMask TypeHookMask { get; set; }
         internal bool Activated { get; set; }
 
+        public virtual string Id => $"{GetType().Assembly.GetName().Name}:{GetType().Name}";
+
         public bool HasAttachments => Attachments.Count > 0;
         public bool IsActive => Activated && Attachments.Count > 0;
+
+        /// <summary>
+        /// These are client-only. The rest run on local, server, and remote clients.
+        /// </summary>
+        public virtual IEnumerable<string> DefineTooltips(bool isShiftHeld) => null;
+        public virtual void ProcessTriggers(TriggersSet triggersSet) { }
+        public virtual void SetControls() { }
+        public virtual void FrameEffects() { }
+        public virtual void MeleeEffects(Item item, Rectangle hitbox) { }
 
         public virtual void OnActivate() { }
         public virtual void OnDeactivate() { }
         public virtual bool CanActivate(TagCompound data) => true;
         public virtual bool CanDeactivate() => true;
 
-        public virtual IEnumerable<string> DefineTooltips(bool isShiftHeld) => null;
-
+        public virtual void OnAttackKeyDown() { }
         public virtual void WhileAttackKeyDown(int ticksHeld) { }
         public virtual void OnAttackKeyUp(int ticksHeld) { }
-        public virtual void WhileUseKeyDown(int ticksHeld) { }
-        public virtual void OnUseKeyUp(int ticksHeld) { }
-
+        public virtual void OnActivateKeyDown() { }
+        public virtual void WhileActivateKeyDown(int ticksHeld) { }
+        public virtual void OnActivateKeyUp(int ticksHeld) { }
         public virtual void ResetEffects() { }
         public virtual void UpdateDead() { }
         public virtual void PreUpdate() { }
-        public virtual void ProcessTriggers(TriggersSet triggersSet) { }
-        public virtual void SetControls() { }
+
         public virtual void PreUpdateBuffs() { }
         public virtual void PostUpdateBuffs() { }
         public virtual void UpdateEquips() { }
@@ -47,7 +59,6 @@ namespace AbaAbilities.Common.Attachments
         public virtual void UpdateLifeRegen() { }
         public virtual void UpdateBadLifeRegen() { }
         public virtual void NaturalLifeRegen(ref float regen) { }
-        public virtual void FrameEffects() { }
 
         public virtual bool FreeDodge(Player.HurtInfo info) => false;
         public virtual bool ConsumableDodge(Player.HurtInfo info) => false;
@@ -91,8 +102,6 @@ namespace AbaAbilities.Common.Attachments
         public virtual bool CanShoot(Item item) => true;
         public virtual void ModifyShootStats(Item item, ref Vector2 position, ref Vector2 velocity, ref int type, ref int damage, ref float knockback) { }
         public virtual bool Shoot(Item item, EntitySource_ItemUse_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback) => true;
-
-        public virtual void MeleeEffects(Item item, Rectangle hitbox) { }
 
         public virtual void ModifyWeaponDamage(Item item, ref StatModifier damage) { }
         public virtual void ModifyWeaponKnockback(Item item, ref StatModifier knockback) { }

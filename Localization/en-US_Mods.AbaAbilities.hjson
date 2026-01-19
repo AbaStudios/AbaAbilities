@@ -38,3 +38,16 @@ Configs: {
 		}
 	}
 }
+
+Projectiles: {
+	CelestialCollapseChargeProj.DisplayName: Celestial Collapse Charge
+	CelestialCollapseRiftProj.DisplayName: Celestial Rift
+	StarlitWhirlwindProjectile.DisplayName: Starlit Whirlwind
+}
+
+Buffs: {
+	PacifistMode: {
+		DisplayName: Pacifist Mode
+		Description: You cannot deal damage
+	}
+}

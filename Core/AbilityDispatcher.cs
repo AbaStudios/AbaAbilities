@@ -28,8 +28,8 @@ namespace AbaAbilities.Core
         public AbilityDispatcher(Player player)
         {
             _player = player;
-            _buckets = new List<Ability>[64];
-            for (int i = 0; i < 64; i++)
+            _buckets = new List<Ability>[(int)HookType.Count];
+            for (int i = 0; i < (int)HookType.Count; i++)
                 _buckets[i] = new List<Ability>();
         }
 
@@ -226,16 +226,16 @@ namespace AbaAbilities.Core
 
         private void AddToBuckets(Ability instance, HookMask hookMask)
         {
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < (int)HookType.Count; i++)
             {
-                if ((hookMask.Mask & (1UL << i)) != 0)
+                if (hookMask.HasHook((HookType)i))
                     _buckets[i].Add(instance);
             }
         }
 
         private void RemoveFromBuckets(Ability instance)
         {
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < (int)HookType.Count; i++)
                 _buckets[i].Remove(instance);
         }
 
@@ -259,7 +259,7 @@ namespace AbaAbilities.Core
 
         private List<Ability> GetBucket(HookType type)
         {
-            return _buckets[System.Numerics.BitOperations.TrailingZeroCount((ulong)type)];
+            return _buckets[(int)type];
         }
 
         private void ActivatePending(HookType hook)
@@ -344,9 +344,11 @@ namespace AbaAbilities.Core
         public void Dispatch_OnMissingMana(Item item, int neededMana) { ActivatePending(HookType.OnMissingMana); foreach (var ability in GetBucket(HookType.OnMissingMana)) ability.OnMissingMana(item, neededMana); }
         public void Dispatch_OnConsumeMana(Item item, int manaConsumed) { ActivatePending(HookType.OnConsumeMana); foreach (var ability in GetBucket(HookType.OnConsumeMana)) ability.OnConsumeMana(item, manaConsumed); }
         public void Dispatch_ModifyMaxStats(out StatModifier health, out StatModifier mana) { ActivatePending(HookType.ModifyMaxStats); health = StatModifier.Default; mana = StatModifier.Default; foreach (var ability in GetBucket(HookType.ModifyMaxStats)) { ability.ModifyMaxStats(out var h, out var m); health = health.CombineWith(h); mana = mana.CombineWith(m); } }
+        public void Dispatch_OnAttackKeyDown() { ActivatePending(HookType.OnAttackKeyDown); foreach (var ability in GetBucket(HookType.OnAttackKeyDown)) ability.OnAttackKeyDown(); }
         public void Dispatch_WhileAttackKeyDown(int ticksHeld) { ActivatePending(HookType.WhileAttackKeyDown); foreach (var ability in GetBucket(HookType.WhileAttackKeyDown)) ability.WhileAttackKeyDown(ticksHeld); }
         public void Dispatch_OnAttackKeyUp(int ticksHeld) { ActivatePending(HookType.OnAttackKeyUp); foreach (var ability in GetBucket(HookType.OnAttackKeyUp)) ability.OnAttackKeyUp(ticksHeld); }
-        public void Dispatch_WhileUseKeyDown(int ticksHeld) { ActivatePending(HookType.WhileUseKeyDown); foreach (var ability in GetBucket(HookType.WhileUseKeyDown)) ability.WhileUseKeyDown(ticksHeld); }
-        public void Dispatch_OnUseKeyUp(int ticksHeld) { ActivatePending(HookType.OnUseKeyUp); foreach (var ability in GetBucket(HookType.OnUseKeyUp)) ability.OnUseKeyUp(ticksHeld); }
+        public void Dispatch_OnActivateKeyDown() { ActivatePending(HookType.OnActivateKeyDown); foreach (var ability in GetBucket(HookType.OnActivateKeyDown)) ability.OnActivateKeyDown(); }
+        public void Dispatch_WhileActivateKeyDown(int ticksHeld) { ActivatePending(HookType.WhileActivateKeyDown); foreach (var ability in GetBucket(HookType.WhileActivateKeyDown)) ability.WhileActivateKeyDown(ticksHeld); }
+        public void Dispatch_OnActivateKeyUp(int ticksHeld) { ActivatePending(HookType.OnActivateKeyUp); foreach (var ability in GetBucket(HookType.OnActivateKeyUp)) ability.OnActivateKeyUp(ticksHeld); }
     }
 }

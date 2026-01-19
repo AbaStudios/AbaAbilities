@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.Chat;
 using Terraria.ID;
@@ -6,16 +7,18 @@ using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 using AbaAbilities.Common.Attachments;
+using AbaAbilities.Common.Graphics;
 
 namespace AbaAbilities.Content.Abilities
 {
     public class ExampleAbility : Ability
     {
         private int _transientCount;
+        private float _charge;
 
         public override IEnumerable<string> DefineTooltips(bool isShiftHeld)
         {
-            yield return "Ability - [c/FFD700:Example Name] [c/667799:(Left Click)]";
+            yield return "Ability - [c/FFD700:Example Name] [c/667799:(-1 Mana)]";
             if (!isShiftHeld)
             {
                 yield return "[c/AAAAAA:    This is a short description, preferably a sentence.]";
@@ -27,6 +30,43 @@ namespace AbaAbilities.Content.Abilities
                 yield return "[c/AAAAAA:    • On left click, it will log held ticks]";
                 yield return $"[c/AAAAAA:    • Attachments: {Attachments.Count}]";
                 yield return "[c/AAAAAA:    • 'Lore should be put in quote']";
+            }
+        }
+
+        public override void PreUpdate()
+        {
+            if (Player.controlUseItem)
+            {
+                _charge += 1f;
+            }
+            else
+            {
+                _charge = 0f;
+            }
+
+            if (_charge > 100f) _charge = 101f;
+
+            if (_charge > 0f && _charge <= 100f)
+            {
+                PlayerHudApi.AddHud(Player, new PlayerHudElement(
+                    text: $"Charge",
+                    barProgress: _charge / 100f,
+                    barColor: Color.DeepSkyBlue,
+                    fontSize: 0.8f,
+                    textColor: Color.White,
+                    useHealthBarStyle: true,
+                    barWidth: 72f,  // Double the width of standard health bar
+                    textGap: 2f     // Push text down 2 pixels from bar
+                ));
+            }
+
+            if (Player.controlUseTile)
+            {
+                PlayerHudApi.AddHud(Player, new PlayerHudElement(
+                    text: "Right Click Active!",
+                    fontSize: 0.8f,
+                    textColor: Color.Blue
+                ));
             }
         }
 
@@ -63,7 +103,7 @@ namespace AbaAbilities.Content.Abilities
             }
         }
 
-        public override void OnUseKeyUp(int ticksHeld)
+        public override void OnActivateKeyUp(int ticksHeld)
         {
             if (ticksHeld < 10 && Player.whoAmI == Main.myPlayer)
             {

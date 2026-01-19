@@ -10,6 +10,7 @@ namespace AbaAbilities.Content.UI;
 public class RunecrafterUISystem : ModSystem
 {
     internal static RunecrafterDialogueUI DialogueUI;
+    internal static RunecrafterEnchantUI EnchantUI;
     internal static UserInterface Interface;
     private static bool _visible;
     private static GameTime _lastGameTime;
@@ -21,12 +22,17 @@ public class RunecrafterUISystem : ModSystem
         DialogueUI = new RunecrafterDialogueUI();
         DialogueUI.Activate();
 
+        EnchantUI = new RunecrafterEnchantUI();
+        EnchantUI.Activate();
+
         Interface = new UserInterface();
 
         DialogueUI.OnCloseClicked += Close;
         DialogueUI.OnEnchantClicked += OnEnchant;
         DialogueUI.OnUnlockInfoClicked += OnUnlockInfo;
         DialogueUI.OnAskClicked += OnAskClicked;
+
+        EnchantUI.OnCloseClicked += OnEnchantClose;
 
         On_Player.SetTalkNPC += DetectRunecrafterTalk;
     }
@@ -40,6 +46,7 @@ public class RunecrafterUISystem : ModSystem
 
     public override void Unload() {
         DialogueUI = null;
+        EnchantUI = null;
         Interface = null;
     }
 
@@ -64,7 +71,20 @@ public class RunecrafterUISystem : ModSystem
     public static bool IsOpen => _visible;
 
     private static void OnEnchant() {
-        Close();
+        // Open the dedicated enchant page (no overlap with the dialogue UI)
+        Interface?.SetState(EnchantUI);
+        Main.playerInventory = true; // Ensure inventory is open
+    }
+
+    private static void OnEnchantClose() {
+        // Return to the dialogue UI
+        Interface?.SetState(DialogueUI);
+        Main.playerInventory = false;
+
+        if (Main.npc.IndexInRange(Main.LocalPlayer.talkNPC)) {
+            string dialogue = Main.npc[Main.LocalPlayer.talkNPC].GetChat();
+            DialogueUI.SetDialogueText(dialogue);
+        }
     }
 
     private static void OnUnlockInfo() {
@@ -79,14 +99,33 @@ public class RunecrafterUISystem : ModSystem
         if (!_visible)
             return;
 
+        // Ensure the interface updates
         Interface?.Update(gameTime);
 
-        if (DialogueUI?.IsFullyClosed == true)
-            Close();
+        // Manually update states if needed
+        if (DialogueUI != null && Interface?.CurrentState == DialogueUI)
+            DialogueUI.Update(gameTime);
+        if (EnchantUI != null && Interface?.CurrentState == EnchantUI)
+            EnchantUI.Update(gameTime);
 
-        if (Main.LocalPlayer.controlInv) {
-            DialogueUI?.RequestClose();
-            Main.LocalPlayer.releaseInventory = false;
+        // EnchantUI logic: Close if inventory is closed
+        if (Interface?.CurrentState == EnchantUI) {
+             // Main.NewText($"[DEBUG] UpdateUI: EnchantUI Active, PlayerInv={Main.playerInventory}");
+            if (!Main.playerInventory) {
+                // Main.NewText("[DEBUG] UpdateUI: Closing EnchantUI because PlayerInv is false");
+                Close();
+            }
+        }
+        
+        // DialogueUI logic: Close if NPC talk ends or Inventory key pressed
+        if (Interface?.CurrentState == DialogueUI) {
+            if (Main.LocalPlayer.talkNPC == -1) {
+                Close();
+            }
+            if (Main.LocalPlayer.controlInv) {
+                DialogueUI?.RequestClose(); // Prefer RequestClose if defined, otherwise Close works
+                Main.LocalPlayer.releaseInventory = false;
+            }
         }
     }
 

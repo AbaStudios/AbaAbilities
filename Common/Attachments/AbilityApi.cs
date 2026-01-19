@@ -8,8 +8,9 @@ namespace AbaAbilities.Common.Attachments
 {
     public static class AbilityApi
     {
-        public static void Register<T>(string id) where T : Ability, new()
+        public static void Register<T>() where T : Ability, new()
         {
+            string id = typeof(T).Assembly.GetName().Name + ":" + typeof(T).Name;
             AbilityRegistry.Register(typeof(T), id);
         }
 

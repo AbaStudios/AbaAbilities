@@ -15,6 +15,7 @@ namespace AbaAbilities.Common.Commands
         public override CommandType Type => CommandType.Chat;
         public override string Command => "attachments";
         public override string Description => "Dev tool for adding/removing/listing attachments";
+        public override bool IsCaseSensitive => true;
 
         public override void Action(CommandCaller caller, string input, string[] args)
         {
@@ -26,7 +27,7 @@ namespace AbaAbilities.Common.Commands
 
             if (args.Length < 2)
             {
-                caller.Reply("Usage: /attachments <add|remove|list> <item|player> [attachment_id]");
+                caller.Reply("Usage: /attachments <add|remove|list|purge> <item|player> [attachment_id]");
                 return;
             }
 
@@ -75,6 +76,18 @@ namespace AbaAbilities.Common.Commands
                 {
                     var list = AttachmentApi.GetPlayerAttachments(caller.Player);
                     foreach (var a in list) caller.Reply(a.Id);
+                }
+            }
+            else if (op == "purge")
+            {
+                if (target == "item")
+                {
+                    var item = caller.Player.inventory[caller.Player.selectedItem];
+                    var identity = item.GetGlobalItem<ItemIdentity>();
+                    int removed = identity.Attachments.RemoveAll(a => AbilityRegistry.GetTypeData(a.Id) == null);
+                    caller.Reply($"Purged {removed} invalid attachments from selected item");
+                    if (Main.netMode == Terraria.ID.NetmodeID.Server && identity.ItemUid >= 0)
+                        AttachmentRuntimeHelpers.MarkDirty(identity.ItemUid);
                 }
             }
         }

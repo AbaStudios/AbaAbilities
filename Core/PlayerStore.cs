@@ -13,13 +13,14 @@ namespace AbaAbilities.Core
     {
         public AbilityDispatcher Dispatcher { get; private set; }
         public List<Attachment> PlayerAttachments { get; private set; } = new List<Attachment>();
+        public uint LastDamageTime { get; private set; }
         private readonly Dictionary<int, List<Attachment>> _itemAttachmentsByUid = new Dictionary<int, List<Attachment>>();
 
         private int _lastSelectedItem = -1;
         private bool _prevControlUseItem = false;
-        private bool _prevControlUseTile = false;
+        private bool _prevControlActivateTile = false;
         private int _attackKeyHeldTicks = 0;
-        private int _useKeyHeldTicks = 0;
+        private int _activateKeyHeldTicks = 0;
         private bool _singletonsInitialized = false;
 
         public override void Initialize()
@@ -101,43 +102,44 @@ namespace AbaAbilities.Core
 
         public override void PostUpdate()
         {
-            if (Player.whoAmI == Main.myPlayer)
+            bool attackKeyDown = Player.controlUseItem;
+            bool useKeyDown = Player.controlUseTile;
+
+            if (attackKeyDown)
             {
-                bool attackKeyDown = Player.controlUseItem;
-                bool useKeyDown = Player.controlUseTile;
+                if (_attackKeyHeldTicks == 0)
+                    Dispatcher.Dispatch_OnAttackKeyDown();
+                Dispatcher.Dispatch_WhileAttackKeyDown(_attackKeyHeldTicks);
+                _attackKeyHeldTicks++;
+            }
+            else
+            {
+                if (_prevControlUseItem && _attackKeyHeldTicks > 0)
+                    Dispatcher.Dispatch_OnAttackKeyUp(_attackKeyHeldTicks);
+                _attackKeyHeldTicks = 0;
+            }
 
-                if (attackKeyDown)
-                {
-                    Dispatcher.Dispatch_WhileAttackKeyDown(_attackKeyHeldTicks);
-                    _attackKeyHeldTicks++;
-                }
-                else
-                {
-                    if (_prevControlUseItem && _attackKeyHeldTicks > 0)
-                        Dispatcher.Dispatch_OnAttackKeyUp(_attackKeyHeldTicks);
-                    _attackKeyHeldTicks = 0;
-                }
+            if (useKeyDown)
+            {
+                if (_activateKeyHeldTicks == 0)
+                    Dispatcher.Dispatch_OnActivateKeyDown();
+                Dispatcher.Dispatch_WhileActivateKeyDown(_activateKeyHeldTicks);
+                _activateKeyHeldTicks++;
+            }
+            else
+            {
+                if (_prevControlActivateTile && _activateKeyHeldTicks > 0)
+                    Dispatcher.Dispatch_OnActivateKeyUp(_activateKeyHeldTicks);
+                _activateKeyHeldTicks = 0;
+            }
 
-                if (useKeyDown)
-                {
-                    Dispatcher.Dispatch_WhileUseKeyDown(_useKeyHeldTicks);
-                    _useKeyHeldTicks++;
-                }
-                else
-                {
-                    if (_prevControlUseTile && _useKeyHeldTicks > 0)
-                        Dispatcher.Dispatch_OnUseKeyUp(_useKeyHeldTicks);
-                    _useKeyHeldTicks = 0;
-                }
+            _prevControlUseItem = attackKeyDown;
+            _prevControlActivateTile = useKeyDown;
 
-                _prevControlUseItem = attackKeyDown;
-                _prevControlUseTile = useKeyDown;
-
-                if (Player.selectedItem != _lastSelectedItem)
-                {
-                    _lastSelectedItem = Player.selectedItem;
-                    RefreshActiveAbilities();
-                }
+            if (Player.selectedItem != _lastSelectedItem)
+            {
+                _lastSelectedItem = Player.selectedItem;
+                RefreshActiveAbilities();
             }
 
             Dispatcher.Dispatch_PostUpdate();
@@ -181,6 +183,7 @@ namespace AbaAbilities.Core
 
         public override void OnHurt(Player.HurtInfo info)
         {
+            LastDamageTime = Main.GameUpdateCount;
             Dispatcher.Dispatch_OnHurt(info);
         }
 
