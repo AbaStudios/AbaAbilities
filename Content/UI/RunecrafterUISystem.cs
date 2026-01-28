@@ -7,6 +7,9 @@ using Terraria.UI;
 
 namespace AbaAbilities.Content.UI;
 
+/// <summary>
+/// Manages the UI system for the Runecrafter NPC, handling dialogue and enchantment interfaces.
+/// </summary>
 public class RunecrafterUISystem : ModSystem
 {
     internal static RunecrafterDialogueUI DialogueUI;
@@ -73,7 +76,7 @@ public class RunecrafterUISystem : ModSystem
     private static void OnEnchant() {
         // Open the dedicated enchant page (no overlap with the dialogue UI)
         Interface?.SetState(EnchantUI);
-        Main.playerInventory = true; // Ensure inventory is open
+        Main.playerInventory = true;
     }
 
     private static void OnEnchantClose() {
@@ -99,7 +102,6 @@ public class RunecrafterUISystem : ModSystem
         if (!_visible)
             return;
 
-        // Ensure the interface updates
         Interface?.Update(gameTime);
 
         // Manually update states if needed

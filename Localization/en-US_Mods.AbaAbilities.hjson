@@ -43,6 +43,28 @@ Projectiles: {
 	CelestialCollapseChargeProj.DisplayName: Celestial Collapse Charge
 	CelestialCollapseRiftProj.DisplayName: Celestial Rift
 	StarlitWhirlwindProjectile.DisplayName: Starlit Whirlwind
+	HyperionTrail.DisplayName: Hyperion Trail
+	HyperionExplosion.DisplayName: Hyperion Explosion
+}
+
+Items: {
+	AbilityTemplateMovement: {
+		DisplayName: Ability Template — Movement
+		Tooltip:
+			'''
+			Place in the Runecrafter to select a movement ability.
+			'A wind-worn folio. Diagrams of sails and feathers, ink still smelling faintly of storm.'
+			'''
+	}
+
+	AbilityTemplateSupport: {
+		DisplayName: Ability Template — Support
+		Tooltip:
+			'''
+			Place in the Runecrafter to select a support ability.
+			'A stitched compendium of ministrations. Recipes for salves, wards and second chances.'
+			'''
+	}
 }
 
 Buffs: {

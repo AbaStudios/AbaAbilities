@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
@@ -15,24 +16,37 @@ using AbaAbilities.Common.Attachments;
 
 namespace AbaAbilities.Content.UI;
 
+/// <summary>
+/// UI state for the Runecrafter's enchantment interface, allowing players to enchant items with abilities.
+/// </summary>
 public class RunecrafterEnchantUI : UIState
 {
     public event Action OnCloseClicked;
 
-    public Item[] SlotItems { get; } = new Item[1];
+    public Item[] SlotItems { get; } = new Item[3];
 
     private BackgroundElement _background;
     private MagicCircleElement _magicCircle;
     private ScalableUIItemSlot _itemSlot;
+    private ScalableUIItemSlot _leftSlot;
+    private ScalableUIItemSlot _rightSlot;
     private ActionButton _closeButton;
     private ActionButton _enchantButton;
     private CoinCostDisplay _costDisplay;
 
-    private static readonly string[] AbilityIds = new[]
+    private static readonly string[] DefaultAbilities = new[]
     {
-        "AbaAbilities:MagicalDash",
-        "AbaAbilities:CelestialCollapse",
         "AbaAbilities:StarlitWhirlwind"
+    };
+
+    private static readonly string[] MovementAbilities = new[]
+    {
+        "AbaAbilities:MagicalDash"
+    };
+
+    private static readonly string[] SupportAbilities = new[]
+    {
+        "AbaAbilities:VitalStrike"
     };
 
     public override void OnInitialize()
@@ -49,7 +63,10 @@ public class RunecrafterEnchantUI : UIState
         centerContainer.VAlign = 0.45f;
         Append(centerContainer);
 
-        _magicCircle = new MagicCircleElement(() => IsSlotEligibleForEnchant());
+        _magicCircle = new MagicCircleElement(
+            () => IsSlotEligibleForEnchant(),
+            () => SlotItems[0] != null && !SlotItems[0].IsAir
+        );
         _magicCircle.Width.Set(460f, 0f);
         _magicCircle.Height.Set(460f, 0f);
         _magicCircle.HAlign = 0.5f;
@@ -57,24 +74,48 @@ public class RunecrafterEnchantUI : UIState
         _magicCircle.IgnoresMouseInteraction = true;
         centerContainer.Append(_magicCircle);
 
-        SlotItems[0] = new Item();
-        SlotItems[0].TurnToAir();
+        for (int i = 0; i < SlotItems.Length; i++)
+        {
+            SlotItems[i] = new Item();
+            SlotItems[i].TurnToAir();
+        }
 
-        // Change context to PrefixItem (Reforge) to reuse vanilla logic and visuals (no stack number)
-        _itemSlot = new ScalableUIItemSlot(SlotItems, 0, Terraria.UI.ItemSlot.Context.PrefixItem);
-        float slotSize = 52f * 2f;
-        _itemSlot.Left.Set((460f - slotSize) * 0.5f, 0f);
-        _itemSlot.Top.Set((460f - slotSize) * 0.5f, 0f);
-        _itemSlot.Width.Set(slotSize, 0f);
-        _itemSlot.Height.Set(slotSize, 0f);
-        _itemSlot.Scale = 0.85f * 2f;
+        // Center Slot (Enchant Item) - 1.7x Scale (~2x visual)
+        float mainScale = 1.7f;
+        _itemSlot = new ScalableUIItemSlot(SlotItems, 0, Terraria.UI.ItemSlot.Context.PrefixItem, mainScale);
+        float mainSize = 52f * mainScale;
+        _itemSlot.Left.Set((460f - mainSize) * 0.5f, 0f);
+        _itemSlot.Top.Set((460f - mainSize) * 0.5f, 0f);
+        _itemSlot.Width.Set(mainSize, 0f);
+        _itemSlot.Height.Set(mainSize, 0f);
         centerContainer.Append(_itemSlot);
+
+        // Side Slots - Normal Scale (0.85f is vanilla standard)
+        float sideScale = 0.85f;
+        float sideSize = 52f * sideScale;
+        float offset = 80f; // Moved even closer to center 
+
+        // Left Slot (Modifier)
+        _leftSlot = new ScalableUIItemSlot(SlotItems, 1, Terraria.UI.ItemSlot.Context.ChestItem, sideScale);
+        _leftSlot.Left.Set((460f - sideSize) * 0.5f - offset, 0f);
+        _leftSlot.Top.Set((460f - sideSize) * 0.5f, 0f);
+        _leftSlot.Width.Set(sideSize, 0f);
+        _leftSlot.Height.Set(sideSize, 0f);
+        centerContainer.Append(_leftSlot);
+
+        // Right Slot (Modifier 2 / Spare)
+        _rightSlot = new ScalableUIItemSlot(SlotItems, 2, Terraria.UI.ItemSlot.Context.ChestItem, sideScale);
+        _rightSlot.Left.Set((460f - sideSize) * 0.5f + offset, 0f);
+        _rightSlot.Top.Set((460f - sideSize) * 0.5f, 0f);
+        _rightSlot.Width.Set(sideSize, 0f);
+        _rightSlot.Height.Set(sideSize, 0f);
+        centerContainer.Append(_rightSlot);
 
         UIElement bottomButtons = new UIElement();
         bottomButtons.Width.Set(600f, 0f);
         bottomButtons.Height.Set(60f, 0f);
         bottomButtons.HAlign = 0.5f;
-        bottomButtons.VAlign = 0.75f;
+        bottomButtons.VAlign = 0.78f;
         Append(bottomButtons);
 
         _closeButton = new ActionButton(ActionButtonKind.Close, "");
@@ -89,15 +130,15 @@ public class RunecrafterEnchantUI : UIState
         _enchantButton.Width.Set(200f, 0f);
         _enchantButton.Height.Set(50f, 0f);
         _enchantButton.HAlign = 0.5f;
-        _enchantButton.VAlign = 0.5f;
+        _enchantButton.VAlign = 0.5f; 
         _enchantButton.OnPressed += TryEnchant;
         bottomButtons.Append(_enchantButton);
 
         _costDisplay = new CoinCostDisplay(() => CalculateCost(), () => IsSlotEligibleForEnchant());
         _costDisplay.Width.Set(300f, 0f);
         _costDisplay.Height.Set(30f, 0f);
-        _costDisplay.HAlign = 0.5f;
-        _costDisplay.VAlign = 0.85f;
+        _costDisplay.HAlign = 0.545f;
+        _costDisplay.VAlign = 0.79f; // Moved slightly down
         Append(_costDisplay);
     }
 
@@ -160,8 +201,19 @@ public class RunecrafterEnchantUI : UIState
             return false;
         }
 
+        // Equippable items (armor, accessories) are not enchantable
+        if (item.accessory || item.headSlot != -1 || item.bodySlot != -1 || item.legSlot != -1)
+        {
+            return false;
+        }
+
         var attachments = AttachmentApi.GetItemAttachments(item);
-        foreach (var abilityId in AbilityIds)
+        List<string> allAbilities = new List<string>();
+        allAbilities.AddRange(DefaultAbilities);
+        allAbilities.AddRange(MovementAbilities);
+        allAbilities.AddRange(SupportAbilities);
+
+        foreach (var abilityId in allAbilities)
         {
             foreach (var existing in attachments)
             {
@@ -203,10 +255,29 @@ public class RunecrafterEnchantUI : UIState
         }
 
         player.BuyItem(cost);
-        
-        string selectedAbility = AbilityIds[Main.rand.Next(AbilityIds.Length)];
+
+        string[] pool = DefaultAbilities;
+        if (SlotItems[1] != null && !SlotItems[1].IsAir)
+        {
+            if (SlotItems[1].type == ModContent.ItemType<Content.Items.AbilityTemplateMovement>())
+            {
+                pool = MovementAbilities;
+                SlotItems[1].stack--;
+                if (SlotItems[1].stack <= 0)
+                    SlotItems[1].TurnToAir();
+            }
+            else if (SlotItems[1].type == ModContent.ItemType<Content.Items.AbilityTemplateSupport>())
+            {
+                pool = SupportAbilities;
+                SlotItems[1].stack--;
+                if (SlotItems[1].stack <= 0)
+                    SlotItems[1].TurnToAir();
+            }
+        }
+
+        string selectedAbility = pool[Main.rand.Next(pool.Length)];
         AttachmentApi.Attach(item, selectedAbility);
-        
+
         SoundEngine.PlaySound(SoundID.Item37);
         PopupText.NewText(PopupTextContext.ItemReforge, item, item.stack, noStack: true);
     }
@@ -218,29 +289,76 @@ public class RunecrafterEnchantUI : UIState
             return;
         }
 
-        Item item = SlotItems[0];
-        if (item == null || item.IsAir)
-        {
-            return;
-        }
-
         Player player = Main.LocalPlayer;
 
-        Item itemToReturn = item.Clone();
-        itemToReturn.position = player.Center;
-
-        Item returned = player.GetItem(Main.myPlayer, itemToReturn, GetItemSettings.GetItemInDropItemCheck);
-        if (returned.stack > 0)
+        for (int i = 0; i < SlotItems.Length; i++)
         {
-            int idx = Item.NewItem(new EntitySource_OverfullInventory(player), player.position, player.width, player.height, returned, noBroadcast: false, noGrabDelay: true);
-            Main.item[idx].newAndShiny = false;
-            if (Main.netMode == NetmodeID.MultiplayerClient)
+            Item item = SlotItems[i];
+            if (item == null || item.IsAir)
             {
-                NetMessage.SendData(MessageID.SyncItem, -1, -1, null, idx, 1f);
+                continue;
             }
+
+            Item itemToReturn = item.Clone();
+            itemToReturn.position = player.Center;
+
+            Item returned = player.GetItem(Main.myPlayer, itemToReturn, GetItemSettings.GetItemInDropItemCheck);
+            if (returned.stack > 0)
+            {
+                int idx = Item.NewItem(new EntitySource_OverfullInventory(player), player.position, player.width, player.height, returned, noBroadcast: false, noGrabDelay: true);
+                Main.item[idx].newAndShiny = false;
+                if (Main.netMode == NetmodeID.MultiplayerClient)
+                {
+                    NetMessage.SendData(MessageID.SyncItem, -1, -1, null, idx, 1f);
+                }
+            }
+
+            SlotItems[i].TurnToAir();
+        }
+    }
+
+    private class ScalableUIItemSlot : UIElement
+    {
+        private Item[] _itemArray;
+        private int _itemIndex;
+        private int _itemContext;
+        private float _scale;
+
+        public ScalableUIItemSlot(Item[] itemArray, int itemIndex, int itemContext, float scale = 1f)
+        {
+            _itemArray = itemArray;
+            _itemIndex = itemIndex;
+            _itemContext = itemContext;
+            _scale = scale;
+            Width.Set(TextureAssets.InventoryBack9.Width() * scale, 0f);
+            Height.Set(TextureAssets.InventoryBack9.Height() * scale, 0f);
         }
 
-        SlotItems[0].TurnToAir();
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            float oldScale = Main.inventoryScale;
+            Main.inventoryScale = _scale;
+
+            CalculatedStyle dims = GetDimensions();
+
+            // Handle interaction logic explicitly (copied from vanilla UIItemSlot but adapted)
+            if (IsMouseHovering)
+            {
+                Main.LocalPlayer.mouseInterface = true;
+                ItemSlot.OverrideHover(ref _itemArray[_itemIndex], _itemContext);
+                ItemSlot.LeftClick(ref _itemArray[_itemIndex], _itemContext);
+                ItemSlot.RightClick(ref _itemArray[_itemIndex], _itemContext);
+                ItemSlot.MouseHover(ref _itemArray[_itemIndex], _itemContext);
+            }
+
+            // ItemSlot.Draw takes position. We center it within the element.
+            // Vanilla UIItemSlot uses: Center + (-26 * scale) which is half of 52 (standard slot size).
+            Vector2 position = dims.Position();
+
+            ItemSlot.Draw(spriteBatch, ref _itemArray[_itemIndex], _itemContext, position);
+
+            Main.inventoryScale = oldScale;
+        }
     }
 
     private class BackgroundElement : UIElement
@@ -278,13 +396,15 @@ public class RunecrafterEnchantUI : UIState
 
     private class MagicCircleElement : UIElement
     {
-        private readonly Func<bool> _isActive;
+        private readonly Func<bool> _isEligible;
+        private readonly Func<bool> _hasItem;
         private Asset<Texture2D> _outline;
         private Asset<Texture2D> _glow;
 
-        public MagicCircleElement(Func<bool> isActive)
+        public MagicCircleElement(Func<bool> isEligible, Func<bool> hasItem)
         {
-            _isActive = isActive;
+            _isEligible = isEligible;
+            _hasItem = hasItem;
         }
 
         public override void OnInitialize()
@@ -306,18 +426,21 @@ public class RunecrafterEnchantUI : UIState
             Texture2D outlineTex = _outline.Value;
             float scale = Math.Min(dims.Width / outlineTex.Width, dims.Height / outlineTex.Height);
 
-            spriteBatch.Draw(outlineTex, center, null, Color.White, 0f, outlineTex.Size() * 0.5f, scale, SpriteEffects.None, 0f);
+            Color outlineColor = Color.White;
+            bool eligible = _isEligible != null && _isEligible();
+            bool hasItem = _hasItem != null && _hasItem();
 
-            bool active = _isActive != null && _isActive();
-            if (active)
+            if (eligible)
             {
-                Texture2D glowTex = _glow != null && _glow.IsLoaded ? _glow.Value : Terraria.GameContent.TextureAssets.MagicPixel.Value;
-                Color tint = Color.Red * 0.5f;
-                if (_glow != null && _glow.IsLoaded)
-                {
-                    spriteBatch.Draw(glowTex, center, null, tint, 0f, glowTex.Size() * 0.5f, scale, SpriteEffects.None, 0f);
-                }
+                outlineColor = new Color(100, 150, 255); // Magical soft blue
             }
+            else if (hasItem)
+            {
+                outlineColor = Color.Gray; // Invalid item
+            }
+            // else White (default)
+
+            spriteBatch.Draw(outlineTex, center, null, outlineColor, 0f, outlineTex.Size() * 0.5f, scale, SpriteEffects.None, 0f);
         }
     }
 
@@ -511,72 +634,10 @@ public class RunecrafterEnchantUI : UIState
                 return;
 
             CalculatedStyle dims = GetDimensions();
-            string costText = "Cost: ";
-            
-            // Format coins similar to vanilla reforge
-            int coins = cost;
-            int platinum = coins / 1000000;
-            coins -= platinum * 1000000;
-            int gold = coins / 10000;
-            coins -= gold * 10000;
-            int silver = coins / 100;
-            coins -= silver * 100;
-            int copper = coins;
 
-            string coinStr = "";
-            if (platinum > 0)
-                coinStr += $"[c/{Colors.AlphaDarken(Colors.CoinPlatinum).Hex3()}:{platinum} Platinum] ";
-            if (gold > 0)
-                coinStr += $"[c/{Colors.AlphaDarken(Colors.CoinGold).Hex3()}:{gold} Gold] ";
-            if (silver > 0)
-                coinStr += $"[c/{Colors.AlphaDarken(Colors.CoinSilver).Hex3()}:{silver} Silver] ";
-            if (copper > 0 || coinStr == "")
-                coinStr += $"[c/{Colors.AlphaDarken(Colors.CoinCopper).Hex3()}:{copper} Copper]";
-
-            var font = FontAssets.MouseText.Value;
-            Color textColor = _isEligible?.Invoke() ?? false ? Color.White : Color.Gray;
-            ChatManager.DrawColorCodedStringWithShadow(spriteBatch, font, costText + coinStr, new Vector2(dims.X, dims.Y), textColor, Color.Black, 0f, Vector2.Zero, Vector2.One);
-        }
-    }
-
-    private class ScalableUIItemSlot : UIItemSlot
-    {
-        public float Scale { get; set; } = 1f;
-        public Item[] MyItemArray { get; private set; }
-        public int MyItemIndex { get; private set; }
-
-        public ScalableUIItemSlot(Item[] itemArray, int itemIndex, int itemSlotContext)
-            : base(itemArray, itemIndex, itemSlotContext)
-        {
-            MyItemArray = itemArray;
-            MyItemIndex = itemIndex;
-        }
-
-        protected override void DrawSelf(SpriteBatch spriteBatch)
-        {
-            float checkScale = Main.inventoryScale;
-            Main.inventoryScale = Scale;
-            base.DrawSelf(spriteBatch);
-            Main.inventoryScale = checkScale;
-
-            if (MyItemArray != null && MyItemIndex >= 0 && MyItemIndex < MyItemArray.Length)
-            {
-                Item item = MyItemArray[MyItemIndex];
-                if (item != null && !item.IsAir && item.damage > 0 && item.maxStack == 1)
-                {
-                    bool hasEnchant = false;
-                    foreach (var existing in AttachmentApi.GetItemAttachments(item))
-                    {
-                        if (existing.Id != null && existing.Id.StartsWith("AbaAbilities")) { hasEnchant = true; break; }
-                    }
-
-                    if (!hasEnchant)
-                    {
-                        Rectangle dims = GetDimensions().ToRectangle();
-                        spriteBatch.Draw(TextureAssets.MagicPixel.Value, dims, Color.Red * 0.3f);
-                    }
-                }
-            }
+            // Use vanilla coin rendering (DrawMoney) for consistency with Goblin Tinkerer
+            int[] coinsArray = Utils.CoinsSplit(cost);
+            Terraria.UI.ItemSlot.DrawMoney(spriteBatch, "Cost:", dims.X, dims.Y, coinsArray, horizontal: true);
         }
     }
 }

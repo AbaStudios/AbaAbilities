@@ -9,9 +9,7 @@ using Terraria.ModLoader;
 using AbaAbilities.Common.Attachments;
 using AbaAbilities.Content.Abilities;
 using AbaAbilities.Content.Abilities.Siphon;
-using AbaAbilities.Content.Abilities.StarlitWhirlwind;
 using AbaAbilities.Core;
-using AbaAbilities.Net;
 
 namespace AbaAbilities
 {
@@ -26,6 +24,8 @@ namespace AbaAbilities
             AbilityApi.Register<MagicSiphon>();
             AbilityApi.Register<CelestialCollapse>();
             AbilityApi.Register<StarlitWhirlwind>();
+            AbilityApi.Register<Hyperion>();
+            AbilityApi.Register<VitalStrike>();
         }
 
         public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -36,6 +36,9 @@ namespace AbaAbilities
             {
                 case AttachmentSyncPacket.PacketType:
                     AttachmentSyncPacket.HandleItemAttachments(reader, whoAmI);
+                    break;
+                case AbilityInputPacket.PacketType:
+                    AbilityInputPacket.Handle(reader, whoAmI);
                     break;
             }
         }

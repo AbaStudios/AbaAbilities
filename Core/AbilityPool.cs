@@ -23,7 +23,8 @@ namespace AbaAbilities.Core
         public static void Return(string abilityId, Ability instance)
         {
             instance.Player = null;
-            instance.Attachments = System.Array.Empty<ActiveAttachment>();
+            instance.CurrentActiveAttachment = null;
+            instance.AllAttachments = System.Array.Empty<ActiveAttachment>();
 
             lock (_lock)
             {

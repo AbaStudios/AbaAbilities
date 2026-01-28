@@ -5,7 +5,7 @@ using Terraria.ModLoader.IO;
 using AbaAbilities.Core;
 using AbaAbilities.Common.Attachments;
 
-namespace AbaAbilities.Net
+namespace AbaAbilities.Core
 {
     public static class AttachmentSyncPacket
     {

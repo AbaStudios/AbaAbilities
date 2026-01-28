@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
@@ -13,8 +14,9 @@ namespace AbaAbilities.Core
     {
         public AbilityDispatcher Dispatcher { get; private set; }
         public List<Attachment> PlayerAttachments { get; private set; } = new List<Attachment>();
+        public Dictionary<string, byte> PlayerUpgrades { get; private set; } = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
         public uint LastDamageTime { get; private set; }
-        private readonly Dictionary<int, List<Attachment>> _itemAttachmentsByUid = new Dictionary<int, List<Attachment>>();
+        public float MaxAbilityCapacity { get; set; } = 1f;
 
         private int _lastSelectedItem = -1;
         private bool _prevControlUseItem = false;
@@ -384,34 +386,38 @@ namespace AbaAbilities.Core
 
         public void RefreshActiveAbilities()
         {
-            _itemAttachmentsByUid.Clear();
+            var allAttachments = new List<(Attachment, AttachmentContext, AttachmentPriority)>();
 
-            ProcessItem(Player.inventory[Player.selectedItem]);
+            ProcessItem(Player.inventory[Player.selectedItem], AttachmentPriority.HeldItem, allAttachments);
 
-            for (int i = 0; i < 10; i++)
-            {
-                ProcessItem(Player.armor[i]);
-            }
+            for (int i = 0; i < 3; i++)
+                ProcessItem(Player.armor[i], AttachmentPriority.Armor, allAttachments);
+
+            for (int i = 3; i < 10; i++)
+                ProcessItem(Player.armor[i], AttachmentPriority.Accessory, allAttachments);
 
             for (int i = 0; i < 5; i++)
-            {
-                ProcessItem(Player.miscEquips[i]);
-            }
+                ProcessItem(Player.miscEquips[i], AttachmentPriority.Accessory, allAttachments);
 
-            Dispatcher.RefreshContexts(PlayerAttachments, _itemAttachmentsByUid);
+            foreach (var attachment in PlayerAttachments)
+                allAttachments.Add((attachment, AttachmentContext.ForPlayer(Player.whoAmI), AttachmentPriority.Player));
+
+            Dispatcher.RefreshContexts(allAttachments);
         }
 
-        private void ProcessItem(Item item)
+        private void ProcessItem(Item item, AttachmentPriority priority, List<(Attachment, AttachmentContext, AttachmentPriority)> list)
         {
-            if (item != null && !item.IsAir)
-            {
-                var identity = item.GetGlobalItem<ItemIdentity>();
-                if (identity.Attachments.Count > 0)
-                {
-                    identity.EnsureItemUid(item);
-                    _itemAttachmentsByUid[identity.ItemUid] = identity.Attachments;
-                }
-            }
+            if (item == null || item.IsAir)
+                return;
+
+            var identity = item.GetGlobalItem<ItemIdentity>();
+            if (identity.Attachments.Count == 0)
+                return;
+
+            identity.EnsureItemUid(item);
+            var context = AttachmentContext.ForItem(identity.ItemUid, Player.whoAmI);
+            foreach (var attachment in identity.Attachments)
+                list.Add((attachment, context, priority));
         }
 
         public override void SaveData(TagCompound tag)
@@ -430,6 +436,20 @@ namespace AbaAbilities.Core
                 }
                 tag["PlayerAttachments"] = list;
             }
+
+            if (PlayerUpgrades.Count > 0)
+            {
+                var upgradeList = new List<TagCompound>();
+                foreach (var kvp in PlayerUpgrades)
+                {
+                    upgradeList.Add(new TagCompound
+                    {
+                        ["Id"] = kvp.Key,
+                        ["Lv"] = kvp.Value
+                    });
+                }
+                tag["PlayerUpgrades"] = upgradeList;
+            }
         }
 
         public override void LoadData(TagCompound tag)
@@ -443,6 +463,19 @@ namespace AbaAbilities.Core
                     var id = attTag.GetString("Id");
                     var data = attTag.Get<TagCompound>("Data");
                     PlayerAttachments.Add(new Attachment(id, data));
+                }
+            }
+
+            if (tag.ContainsKey("PlayerUpgrades"))
+            {
+                var list = tag.GetList<TagCompound>("PlayerUpgrades");
+                PlayerUpgrades.Clear();
+                foreach (var upTag in list)
+                {
+                    var id = upTag.GetString("Id");
+                    var level = upTag.GetByte("Lv");
+                    if (level > 0)
+                        PlayerUpgrades[id] = level;
                 }
             }
         }

@@ -25,6 +25,8 @@ namespace AbaAbilities.Core
         private readonly HashSet<string> _seenSingletonIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly List<Ability> _pendingBuffer = new List<Ability>();
 
+        private static readonly Comparison<ActiveAttachment> _priorityComparer = (a, b) => a.Priority.CompareTo(b.Priority);
+
         public AbilityDispatcher(Player player)
         {
             _player = player;
@@ -42,7 +44,8 @@ namespace AbaAbilities.Core
 
                 var instance = typeData.Factory();
                 instance.Player = _player;
-                instance.Attachments = System.Array.Empty<ActiveAttachment>();
+                instance.CurrentActiveAttachment = null;
+                instance.AllAttachments = Array.Empty<ActiveAttachment>();
                 instance.TypeHookMask = typeData.HookMask;
                 instance.Activated = false;
                 _singletons[typeData.Id] = instance;
@@ -55,7 +58,7 @@ namespace AbaAbilities.Core
             return _singletons.TryGetValue(abilityId, out var instance) ? instance : null;
         }
 
-        public void RefreshContexts(List<Attachment> playerAttachments, Dictionary<int, List<Attachment>> itemAttachmentsByUid)
+        public void RefreshContexts(List<(Attachment attachment, AttachmentContext context, AttachmentPriority priority)> allAttachments)
         {
             _seenSingletonIds.Clear();
             _seenMultiKeys.Clear();
@@ -63,47 +66,23 @@ namespace AbaAbilities.Core
             foreach (var list in _singletonAttachments.Values)
                 list.Clear();
 
-            foreach (var attachment in playerAttachments)
+            foreach (var (attachment, context, priority) in allAttachments)
             {
                 var typeData = AbilityRegistry.GetTypeData(attachment.Id);
                 if (typeData == null)
                     continue;
 
-                var context = AttachmentContext.ForPlayer(_player.whoAmI);
+                int uid = context.OwnerKind == OwnerKind.Item ? context.ItemUid : -1;
 
                 if (typeData.AllowMultipleInstances)
                 {
-                    _seenMultiKeys.Add((attachment.Id, -1));
-                    EnsurePendingMulti(attachment, context, typeData);
+                    _seenMultiKeys.Add((attachment.Id, uid));
+                    EnsurePendingMulti(attachment, context, priority, typeData);
                 }
                 else
                 {
                     _seenSingletonIds.Add(attachment.Id);
-                    AddSingletonAttachment(attachment, context);
-                }
-            }
-
-            foreach (var kvp in itemAttachmentsByUid)
-            {
-                int itemUid = kvp.Key;
-                foreach (var attachment in kvp.Value)
-                {
-                    var typeData = AbilityRegistry.GetTypeData(attachment.Id);
-                    if (typeData == null)
-                        continue;
-
-                    var context = AttachmentContext.ForItem(itemUid, _player.whoAmI);
-
-                    if (typeData.AllowMultipleInstances)
-                    {
-                        _seenMultiKeys.Add((attachment.Id, itemUid));
-                        EnsurePendingMulti(attachment, context, typeData);
-                    }
-                    else
-                    {
-                        _seenSingletonIds.Add(attachment.Id);
-                        AddSingletonAttachment(attachment, context);
-                    }
+                    AddSingletonAttachment(attachment, context, priority);
                 }
             }
 
@@ -111,10 +90,10 @@ namespace AbaAbilities.Core
             RemoveStaleMultiInstances();
         }
 
-        private void AddSingletonAttachment(Attachment attachment, AttachmentContext context)
+        private void AddSingletonAttachment(Attachment attachment, AttachmentContext context, AttachmentPriority priority)
         {
             if (_singletonAttachments.TryGetValue(attachment.Id, out var list))
-                list.Add(new ActiveAttachment(context, attachment.Data));
+                list.Add(new ActiveAttachment(context, attachment.Data, priority));
         }
 
         private void FinalizeSingletonAttachments()
@@ -125,24 +104,43 @@ namespace AbaAbilities.Core
                 var instance = kvp.Value;
                 var attachments = _singletonAttachments[abilityId];
 
-                bool hadAttachments = instance.Attachments.Count > 0;
+                bool hadAttachments = instance.AllAttachments.Count > 0;
                 bool hasAttachments = attachments.Count > 0;
 
-                instance.Attachments = hasAttachments ? attachments.ToArray() : System.Array.Empty<ActiveAttachment>();
-
-                if (hadAttachments && !hasAttachments)
+                if (hasAttachments)
                 {
+                    attachments.Sort(_priorityComparer);
+                    var arr = attachments.ToArray();
+                    instance.AllAttachments = arr;
+                    instance.CurrentActiveAttachment = arr[0];
+                }
+                else
+                {
+                    instance.AllAttachments = Array.Empty<ActiveAttachment>();
+
                     if (instance.Activated)
                     {
-                        RemoveFromBuckets(instance);
-                        instance.OnDeactivate();
-                        instance.Activated = false;
+                        if (instance.CanDeactivate())
+                        {
+                            RemoveFromBuckets(instance);
+                            instance.OnDeactivate();
+                            instance.Activated = false;
+                            instance.CurrentActiveAttachment = null;
+                        }
+                        else
+                        {
+                            instance.CurrentActiveAttachment = null;
+                        }
+                    }
+                    else
+                    {
+                        instance.CurrentActiveAttachment = null;
                     }
                 }
             }
         }
 
-        private void EnsurePendingMulti(Attachment attachment, AttachmentContext context, AbilityTypeData typeData)
+        private void EnsurePendingMulti(Attachment attachment, AttachmentContext context, AttachmentPriority priority, AbilityTypeData typeData)
         {
             int uid = context.OwnerKind == OwnerKind.Item ? context.ItemUid : -1;
 
@@ -155,9 +153,10 @@ namespace AbaAbilities.Core
             if (!uidMap.ContainsKey(uid))
             {
                 var instance = AbilityPool.Rent(attachment.Id, typeData);
-                var activeAttachment = new ActiveAttachment(context, attachment.Data);
+                var activeAttachment = new ActiveAttachment(context, attachment.Data, priority);
                 instance.Player = _player;
-                instance.Attachments = new[] { activeAttachment };
+                instance.CurrentActiveAttachment = activeAttachment;
+                instance.AllAttachments = new[] { activeAttachment };
                 instance.TypeHookMask = typeData.HookMask;
                 instance.Activated = false;
                 uidMap[uid] = instance;
@@ -208,13 +207,13 @@ namespace AbaAbilities.Core
             if (ability.Activated)
                 return true;
 
-            if (ability.Attachments.Count == 0)
+            if (ability.AllAttachments.Count == 0)
                 return false;
 
             if (ability.TypeHookMask.IsNoAutoActivate(hook))
                 return false;
 
-            var data = ability.Attachments[0].Data;
+            var data = ability.AllAttachments[0].Data;
             if (!ability.CanActivate(data))
                 return false;
 
@@ -268,7 +267,7 @@ namespace AbaAbilities.Core
             foreach (var kvp in _singletons)
             {
                 var instance = kvp.Value;
-                if (!instance.Activated && instance.Attachments.Count > 0 && instance.TypeHookMask.HasHook(hook))
+                if (!instance.Activated && instance.AllAttachments.Count > 0 && instance.TypeHookMask.HasHook(hook))
                     _pendingBuffer.Add(instance);
             }
             foreach (var kvp in _multiInstances)

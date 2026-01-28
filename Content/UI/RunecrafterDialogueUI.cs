@@ -13,6 +13,9 @@ using Terraria.UI.Chat;
 
 namespace AbaAbilities.Content.UI;
 
+/// <summary>
+/// UI state for the Runecrafter's dialogue interface, providing options to enchant or view unlocks.
+/// </summary>
 public class RunecrafterDialogueUI : UIState
 {
     public event Action OnEnchantClicked;
@@ -80,7 +83,7 @@ public class RunecrafterDialogueUI : UIState
 
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
-        Recalculate(); // Ensure proper UIElement dimensions for mouse detection
+        Recalculate();
         if (_closing) return;
 
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -335,7 +338,6 @@ public class RunecrafterDialogueUI : UIState
             DrawPanel(spriteBatch, _panelBg.Value, topLeft, size, bgColor);
             DrawPanel(spriteBatch, _panelBorder.Value, topLeft, size, borderColor);
 
-            // Vanilla Button Color Logic
             int num = Main.mouseTextColor;
             Color baseColor = new Color(num, (int)((double)num / 1.1), num / 2, num) * opacity;
             Color shadowColor = _hoverProgress > 0.01f ? Color.Brown : Color.Black;

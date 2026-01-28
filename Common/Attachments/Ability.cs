@@ -15,14 +15,15 @@ namespace AbaAbilities.Common.Attachments
     public abstract class Ability
     {
         public Player Player { get; internal set; }
-        public IReadOnlyList<ActiveAttachment> Attachments { get; internal set; } = System.Array.Empty<ActiveAttachment>();
+        public ActiveAttachment? CurrentActiveAttachment { get; internal set; }
+        public IReadOnlyList<ActiveAttachment> AllAttachments { get; internal set; } = System.Array.Empty<ActiveAttachment>();
         internal HookMask TypeHookMask { get; set; }
         internal bool Activated { get; set; }
 
         public virtual string Id => $"{GetType().Assembly.GetName().Name}:{GetType().Name}";
 
-        public bool HasAttachments => Attachments.Count > 0;
-        public bool IsActive => Activated && Attachments.Count > 0;
+        public bool HasActiveAttachment => CurrentActiveAttachment.HasValue;
+        public bool IsActive => Activated;
 
         /// <summary>
         /// These are client-only. The rest run on local, server, and remote clients.

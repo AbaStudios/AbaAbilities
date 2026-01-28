@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,6 +17,7 @@ namespace AbaAbilities.Core
 
         public int ItemUid { get; private set; } = -1;
         public List<Attachment> Attachments { get; set; } = new List<Attachment>();
+        public Dictionary<string, byte> Upgrades { get; set; } = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
 
         public override bool InstancePerEntity => true;
 
@@ -24,6 +26,7 @@ namespace AbaAbilities.Core
             var clone = (ItemIdentity)base.Clone(from, to);
             clone.ItemUid = -1;
             clone.Attachments = new List<Attachment>(Attachments.Select(a => new Attachment(a.Id, (TagCompound)a.Data?.Clone() ?? new TagCompound())));
+            clone.Upgrades = new Dictionary<string, byte>(Upgrades, StringComparer.OrdinalIgnoreCase);
             return clone;
         }
 
@@ -40,42 +43,56 @@ namespace AbaAbilities.Core
 
         public override void ModifyTooltips(Item item, List<TooltipLine> tooltips)
         {
-            if (Attachments.Count == 0)
-                return;
+            bool hasContent = false;
+            var customLines = new List<TooltipLine>();
 
-            var player = Main.LocalPlayer;
-            bool isShiftHeld = Main.keyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift) || Main.keyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightShift);
-
-            var playerStore = player.GetModPlayer<PlayerStore>();
-
-            var abilityLines = new List<TooltipLine>();
-
-            foreach (var attachment in Attachments)
+            if (Upgrades.Count > 0)
             {
-                var typeData = AbilityRegistry.GetTypeData(attachment.Id);
-                if (typeData == null)
-                    continue;
-
-                var singleton = playerStore.Dispatcher.GetSingleton(attachment.Id);
-                IEnumerable<string> lines = singleton?.DefineTooltips(isShiftHeld);
-
-                if (lines == null)
-                    continue;
-
-                foreach (var line in lines)
+                hasContent = true;
+                foreach (var kvp in Upgrades)
                 {
-                    if (!string.IsNullOrEmpty(line))
-                        abilityLines.Add(new TooltipLine(Mod, $"Ability_{attachment.Id}", line));
+                    string text = kvp.Value > 1
+                        ? $"[c/88CCFF:▲ {kvp.Key}] [c/AAAAAA:Lv.{kvp.Value}]"
+                        : $"[c/88CCFF:▲ {kvp.Key}]";
+                    customLines.Add(new TooltipLine(Mod, $"Upgrade_{kvp.Key}", text));
                 }
             }
 
-            if (abilityLines.Count == 0)
+            if (Attachments.Count > 0)
+            {
+                var player = Main.LocalPlayer;
+                bool isShiftHeld = Main.keyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift) || Main.keyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightShift);
+                var playerStore = player.GetModPlayer<PlayerStore>();
+
+                foreach (var attachment in Attachments)
+                {
+                    var typeData = AbilityRegistry.GetTypeData(attachment.Id);
+                    if (typeData == null)
+                        continue;
+
+                    var singleton = playerStore.Dispatcher.GetSingleton(attachment.Id);
+                    IEnumerable<string> lines = singleton?.DefineTooltips(isShiftHeld);
+                    if (lines == null)
+                        continue;
+
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            hasContent = true;
+                            customLines.Add(new TooltipLine(Mod, $"Ability_{attachment.Id}", line));
+                        }
+                    }
+                }
+            }
+
+            if (!hasContent)
                 return;
 
             const string separator = "\u00A0";
-            tooltips.Add(new TooltipLine(Mod, "AbilityBlankTop", separator));
-            tooltips.AddRange(abilityLines);
-            tooltips.Add(new TooltipLine(Mod, "AbilityBlankBottom", separator));
+            tooltips.Add(new TooltipLine(Mod, "CustomBlankTop", separator));
+            tooltips.AddRange(customLines);
+            tooltips.Add(new TooltipLine(Mod, "CustomBlankBottom", separator));
         }
 
         public override void SaveData(Item item, TagCompound tag)
@@ -96,6 +113,20 @@ namespace AbaAbilities.Core
                     list.Add(attTag);
                 }
                 tag["Attachments"] = list;
+            }
+
+            if (Upgrades.Count > 0)
+            {
+                var upgradeList = new List<TagCompound>();
+                foreach (var kvp in Upgrades)
+                {
+                    upgradeList.Add(new TagCompound
+                    {
+                        ["Id"] = kvp.Key,
+                        ["Lv"] = kvp.Value
+                    });
+                }
+                tag["Upgrades"] = upgradeList;
             }
         }
 
@@ -122,16 +153,37 @@ namespace AbaAbilities.Core
                     Attachments.Add(new Attachment(id, data));
                 }
             }
+
+            if (tag.ContainsKey("Upgrades"))
+            {
+                var list = tag.GetList<TagCompound>("Upgrades");
+                Upgrades.Clear();
+                foreach (var upTag in list)
+                {
+                    var id = upTag.GetString("Id");
+                    var level = upTag.GetByte("Lv");
+                    if (level > 0)
+                        Upgrades[id] = level;
+                }
+            }
         }
 
         public override void NetSend(Item item, BinaryWriter writer)
         {
             writer.Write(ItemUid);
+
             writer.Write(Attachments.Count);
             foreach (var attachment in Attachments)
             {
                 writer.Write(attachment.Id);
                 TagIO.Write(attachment.Data, writer);
+            }
+
+            writer.Write(Upgrades.Count);
+            foreach (var kvp in Upgrades)
+            {
+                writer.Write(kvp.Key);
+                writer.Write(kvp.Value);
             }
         }
 
@@ -144,13 +196,23 @@ namespace AbaAbilities.Core
                     _nextItemUid = ItemUid + 1;
             }
 
-            int count = reader.ReadInt32();
+            int attCount = reader.ReadInt32();
             Attachments.Clear();
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < attCount; i++)
             {
                 var id = reader.ReadString();
                 var data = TagIO.Read(reader);
                 Attachments.Add(new Attachment(id, data));
+            }
+
+            int upgCount = reader.ReadInt32();
+            Upgrades.Clear();
+            for (int i = 0; i < upgCount; i++)
+            {
+                var id = reader.ReadString();
+                var level = reader.ReadByte();
+                if (level > 0)
+                    Upgrades[id] = level;
             }
         }
     }

@@ -10,6 +10,9 @@ using AbaAbilities.Common.Graphics;
 
 namespace AbaAbilities.Core.Graphics
 {
+    /// <summary>
+    /// Manages HUD elements drawn above players, such as ability indicators and bars.
+    /// </summary>
     public class PlayerHudSystem : ModSystem
     {
         private Dictionary<int, List<PlayerHudElement>> _hudElements = new Dictionary<int, List<PlayerHudElement>>();
@@ -27,7 +30,6 @@ namespace AbaAbilities.Core.Graphics
         public override void PreUpdatePlayers()
         {
             // Clear the list at the start of the frame so it can be repopulated
-            // Wait, PreUpdate uses Main.player list?
             foreach (var list in _hudElements.Values)
             {
                 list.Clear();
@@ -64,7 +66,7 @@ namespace AbaAbilities.Core.Graphics
                         DrawPlayerHuds();
                         return true;
                     },
-                    InterfaceScaleType.Game) // Scales with zoom
+                    InterfaceScaleType.Game)
                 );
             }
         }
@@ -123,9 +125,7 @@ namespace AbaAbilities.Core.Graphics
             }
 
             float textTotalH = !string.IsNullOrEmpty(element.Text) ? textSize.Y : 0f;
-            totalHeight = barTotalH + textTotalH; // Text and bar are stacked, no gap
-
-            // Draw Bar
+            totalHeight = barTotalH + textTotalH;
             if (element.BarProgress.HasValue)
             {
                 if (element.UseHealthBarStyle)
@@ -138,7 +138,6 @@ namespace AbaAbilities.Core.Graphics
                 }
             }
 
-            // Draw Text
             if (!string.IsNullOrEmpty(element.Text))
             {
                 // Text sits above bar with configurable gap

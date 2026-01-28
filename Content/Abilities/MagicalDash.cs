@@ -9,6 +9,9 @@ using AbaAbilities.Core;
 
 namespace AbaAbilities.Content.Abilities
 {
+    /// <summary>
+    /// An ability that provides a magical dash movement with cooldown.
+    /// </summary>
     public class MagicalDash : Ability
     {
         private int _dashTimer;
